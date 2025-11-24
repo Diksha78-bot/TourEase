@@ -1,14 +1,11 @@
 const User = require('../models/user');
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
 
 // Generate JWT Token
 const generateToken = (userId) => {
-  return jwt.sign(
-    { userId },
-    process.env.JWT_SECRET || 'your-secret-key-change-in-production',
-    { expiresIn: '30d' }
-  );
+  return jwt.sign({ userId }, process.env.JWT_SECRET || 'your-secret-key-change-in-production', {
+    expiresIn: '30d',
+  });
 };
 
 // @desc    Register a new user
@@ -35,14 +32,11 @@ const signup = async (req, res) => {
       });
     }
 
-    // 🔥 Hash password before saving
-    const hashedPassword = await bcrypt.hash(password, 10);
-
     // Create user
     const user = await User.create({
       name,
       email,
-      password: hashedPassword,
+      password,
       phone: phone || undefined,
     });
 
@@ -88,7 +82,7 @@ const login = async (req, res) => {
       });
     }
 
-    // Find user and select password
+    // Find user and include password
     const user = await User.findOne({ email }).select('+password');
     if (!user) {
       return res.status(401).json({
@@ -97,8 +91,8 @@ const login = async (req, res) => {
       });
     }
 
-    // 🔥 Compare password
-    const isMatch = await bcrypt.compare(password, user.password);
+    // Check password
+    const isMatch = await user.comparePassword(password);
     if (!isMatch) {
       return res.status(401).json({
         success: false,
@@ -136,3 +130,4 @@ module.exports = {
   signup,
   login,
 };
+
